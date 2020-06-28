@@ -10,7 +10,8 @@ else:
     import PySimpleGUI27 as sg
 from PIL import Image, ImageTk
 import piexif
-from TagMasterList import TaggerList
+from TagMasterList import TaggerList, SpecialList
+
 import os
 import io
 
@@ -20,6 +21,7 @@ menu_def = [['&File', ['&Open', '&Save', 'E&xit', 'Properties']],
 
 TaggerList.sort()
 TaggerList.append("<end>")
+SpecialList.sort()
 
 #### Global Vars
 TaggerListLen = len(TaggerList)
@@ -32,6 +34,7 @@ KeyValue = 40094  # ExIF key for KeyWords in Windows
 Nullth = '0th'
 KeyStr = "XPKeywords"
 exifDataRaw = {}
+
 
 #### Get the folder containin:g the images from the user
 sg.theme('Dark Red')
@@ -95,12 +98,13 @@ def PullTags(pathname, filename):
     return ""
 
 
-def PushTags(pathname, filename):
+def PushTags(pathname, filename, ListTag):
     InsertString = ""
     global exifDataRaw
     for Tag in TaggerList[:-1]:
         if values[Tag]:
             InsertString = InsertString + Tag + ";"
+    InsertString = ListTag + InsertString
     #Get whole dataset
     print("Missing ", Nullth, "Data:", exifDataRaw)
     if exifDataRaw:
@@ -112,6 +116,7 @@ def PushTags(pathname, filename):
             print("Missing ", Nullth, "Data:", exifDataRaw)
     else:
         print("No Exif Data")
+
 
 
 
@@ -134,8 +139,6 @@ def CBtn(BoxText):
     return sg.Checkbox(BoxText, size=(11, 1), default=False, key=(BoxText))
 
 
-
-
 #### Layout sets ===============================================
 ##   make these 2 elements outside the layout as we want to "update" them later
 ##   initialize to the first file in the list
@@ -150,14 +153,21 @@ column2 = [[CBtn(Tags2[i])] for i in range(len(Tags2))]
 column3 = [[CBtn(Tags3[i])] for i in range(len(Tags3))]
 
 col_image = [[image_elem]]
-ImageNameText = sg.Text(filename, size=(80, 1), justification='center', auto_size_text=True)
+ImageNameText = sg.Text(filename, size=(60, 1), justification='center', auto_size_text=True)
+
+ProperList = [sg.Listbox(values=SpecialList, size=(40, 10), key='proplist', select_mode="LISTBOX_SELECT_MODE_SINGLE",
+                         enable_events=True)]
+BoxListButtons = [[sg.Button(('Add Tag'), size=(8, 2)), sg.Button(('Clear Tag'), size=(8, 2))]]
+
 
 col_files = [[sg.Listbox(values=Filenames, change_submits=True, size=(40, 40), key='listbox')], [file_num_display_elem],
              [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size=(10, 2)),
-             sg.Button(('Hold Boxes'), size=(10, 2))]
-             ]
+             sg.Button(('Hold Boxes'), size=(10, 2))], ProperList, [sg.Column(BoxListButtons)]]
 
 TagButtons = [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size= (10, 2)), sg.Button(('Hold Boxes'), size= (10, 2))]
+
+StarButtons = [sg.Button(('Star 5'), size=(10, 1)), sg.Button(('Star 4'), size=(10, 1)), sg.Button(('Star 3'), size=(10, 1)),
+               sg.Button(('Star 2'), size=(10, 1)), sg.Button(('Star 1'), size=(10, 1)), sg.Button(('No Star'), size=(10, 1))]
 
 Col_Frame1 = [ [ sg.Column([[sg.Text('Tag Lists:')], [sg.Column(column1)]]) ] ]
 Col_Frame2 = [ [ sg.Column([[sg.Text('Tag Lists:')], [sg.Column(column2)]]) ] ]
@@ -166,11 +176,13 @@ Col_Frame3 = [ [ sg.Column([[sg.Text('Tag Lists:')], [sg.Column(column3)]]) ] ]
 layout = [
     [sg.Text('Image Tagger', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE),
      sg.Text('Your Folder', size=(15, 1), justification='right'), sg.InputText(ImagePath), sg.FolderBrowse(),
-     sg.Button(('Go'), size=(4,1)), ImageNameText, sg.Button(('Exit'), size=(10,2)) ],
+     sg.Button(('Go'), size=(4,1)), ImageNameText,
+     sg.Button(('Star 5'), size=(8, 1)), sg.Button(('Star 4'), size=(8, 1)), sg.Button(('Star 3'), size=(8, 1)),
+     sg.Button(('Star 2'), size=(8, 1)), sg.Button(('Star 1'), size=(8, 1)), sg.Button(('No Star'), size=(8, 1)),
+     sg.Button(('Exit'), size=(16,2)) ],
     [sg.Button(('<'), size=(3, 50)), (sg.Column(col_image, size=ImageSize)),
      sg.Button(('>'), size=(3, 50)), sg.Column(Col_Frame1), sg.Column(Col_Frame2), sg.Column(Col_Frame3),
-     sg.Column(col_files)],
-    ]
+     sg.Column(col_files)] ]
 
 #### Main ===============================================
 ##
@@ -178,10 +190,10 @@ def main():
     Running = True
     Hold = False
     image_idx = 0
-    ImageName = ""
+    ImageName = ListTag = ""
     HoldList = []
 
-    global ImagePath, Filenames, window, values
+    global ImagePath, Filenames, window, values, ProperListNames
 
     window = sg.Window('Image Tagger', layout, return_keyboard_events=True,
                        location=(0, 0), use_default_focus=False)
@@ -229,7 +241,12 @@ def main():
             ImageTagsClear()
         elif event == 'Save Image':
             # Read checkboxes
-            PushTags(ImagePath, Filenames[image_idx])
+            PushTags(ImagePath, Filenames[image_idx], ListTag)
+        elif event == 'Add Tag':
+            TupIndex = window['proplist'].get_indexes()
+            ListTag = SpecialList[TupIndex[0]] + ";"
+        elif event == 'Clear Tag':
+            ListTag = ""
         elif event == 'Exit':
             Running = False
         else:

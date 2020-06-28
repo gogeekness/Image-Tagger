@@ -6,5 +6,5 @@ TaggerList = ["armbinder","ponygirl","Outdoor","vet","art","two","nipple-clamps"
               "zelda","princess","viking","saddle","beast", "computer", "leather bondage","box","blindfold",
               "harness","fuzz","vintage","over_stuff","plug", "machine",,"cloud", "peach", "nylon"]
 
-SpecialList = ["vet", "Fran", "viking", "benson", "Bishop", "house", "order", "52", "hitomi",
-               "heather_mechel", "pet-tentacle", "coco", "zelda", "peach", "sneak", ]
+SpecialList = ["vet", "Fran", "viking", "benson", "Bishop", "house", "order", "xxx52", "hitomi",
+               "heather_mechel", "pet-tentacle", "coco", "zelda", "peach", "sneak", "polecat"]
