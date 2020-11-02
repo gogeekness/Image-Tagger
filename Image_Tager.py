@@ -18,10 +18,8 @@ import io
 #### Global Var Lists
 menu_def = [['&File', ['&Open', '&Save', 'E&xit', 'Properties']],
             ['&Help', '&About...'], ]
+radio_list = ['RAD0', 'RAD1', 'RAD2', 'RAD3', 'RAD4', 'RAD5']
 
-TaggerList.sort()
-TaggerList.append("<end>")
-SpecialList.sort()
 
 #### Global Vars
 TaggerListLen = len(TaggerList)
@@ -31,12 +29,20 @@ Tags3 = TaggerList[int(TaggerListLen/3*2):-1]
 BaseTag = Filenames = []
 ImageSize = (1440, 920)
 KeyValue = 40094  # ExIF key for KeyWords in Windows
+KeyRating = 18246  # ExIF key for rating in Windows
+PerRating = 18249  # ExIF Percentage rating
 Nullth = '0th'
 KeyStr = "XPKeywords"
 exifDataRaw = {}
+ExtRating = 0  # temporary value
+BlankTag = {'0th': {18246: 0, 18249: 0, 40094: (65, 0)}, 'Exif': {}, 'GPS': {}, 'Interop': {}, '1st': {}, 'thumbnail': None}
 
+### Sorting Tag list alphebetacaly
+TaggerList.sort()
+TaggerList.append("<end>")
+SpecialList.sort()
 
-#### Get the folder containin:g the images from the user
+### Get the folder containin:g the images from the user
 sg.theme('Dark Red')
 
 ImagePath = sg.PopupGetFolder('Image folder to open', default_path='')
@@ -74,6 +80,7 @@ def get_img_data(f, maxsize = ImageSize, first = False):
     try:
         img = Image.open(f)
     except OSError:
+        print("OS Error", OSError, "  First ", first)
         return None
     img.thumbnail(maxsize)
     if first:                     # tkinter is inactive the first time
@@ -90,12 +97,37 @@ def PullTags(pathname, filename):
     try:
         if exifDataRaw[Nullth]:
             if KeyValue in exifDataRaw[Nullth]:
-                TagOutput = str(bytes(exifDataRaw[Nullth][KeyValue]).decode('utf_16_le'))[:-1]
+                TagOutput = str(bytes(exifDataRaw[Nullth][KeyValue]).decode('utf_16_le'))#[:-1]
                 return str(TagOutput)
     except ValueError:
         print("Error no", Nullth, "Data:", exifDataRaw)
+        print("Dump 0th:", piexif.dump(BlankTag))
+        exif_bytes = piexif.dump(BlankTag)
+        # im = Image.open(pathname + '\\' + filename)
+        piexif.insert(piexif.dump(BlankTag), pathname + '\\' + filename)
+        # im.save(pathname + '\\' + filename, exif=exif_bytes)
         return ""
     return ""
+
+
+def PullRating(pathname, filename):
+    global exifDataRaw
+    exifDataRaw = piexif.load(pathname + '\\' + filename)
+    try:
+        if exifDataRaw[Nullth]:
+            try:
+                if exifDataRaw[Nullth][KeyRating]:
+                    RatingOut = exifDataRaw[Nullth][KeyRating]
+                else:
+                    RatingOut = 0
+            except KeyError:
+                print("Key error with: ", KeyRating)
+                RatingOut = 0
+            return RatingOut
+    except ValueError:
+        print("Error no", Nullth, "Data:", exifDataRaw)
+        return 0
+    return 0
 
 
 def PushTags(pathname, filename, ListTag):
@@ -110,14 +142,14 @@ def PushTags(pathname, filename, ListTag):
     if exifDataRaw:
         if exifDataRaw[Nullth]:
             exifDataRaw[Nullth][KeyValue] = tuple(InsertString[:-1].encode('utf_16_le'))
+            exifDataRaw[Nullth][KeyRating] = GetRadio()
+            exifDataRaw[Nullth][PerRating] = 20 * GetRadio()
             ByteExif = piexif.dump(exifDataRaw)
             piexif.insert(ByteExif, pathname + '\\' + filename)
         else:
             print("Missing ", Nullth, "Data:", exifDataRaw)
     else:
         print("No Exif Data")
-
-
 
 
 def ShowImageTags(TagStr):
@@ -129,7 +161,6 @@ def ShowImageTags(TagStr):
                     InterList.append(str(Tag))
                     window.Element(str(Tag)).Update(value=True)
 
-
 def ImageTagsClear():
     for Tag in TaggerList[:-1]:
         window.Element(str(Tag)).Update(value=False)
@@ -138,6 +169,13 @@ def ImageTagsClear():
 def CBtn(BoxText):
     return sg.Checkbox(BoxText, size=(11, 1), default=False, key=(BoxText))
 
+def GetRadio():
+    rating = 0
+    for i in range(len(radio_list)):
+        if window.FindElement(radio_list[i]).Get() == True:
+            return rating
+        rating = rating + 1
+    return 0
 
 #### Layout sets ===============================================
 ##   make these 2 elements outside the layout as we want to "update" them later
@@ -157,17 +195,16 @@ ImageNameText = sg.Text(filename, size=(60, 1), justification='center', auto_siz
 
 ProperList = [sg.Listbox(values=SpecialList, size=(40, 10), key='proplist', select_mode="LISTBOX_SELECT_MODE_SINGLE",
                          enable_events=True)]
-BoxListButtons = [[sg.Button(('Add Tag'), size=(8, 2)), sg.Button(('Clear Tag'), size=(8, 2))]]
 
+BoxListButtons = [[sg.Button(('Add Tag'), size=(8, 2)), sg.Button(('Clear Tag'), size=(8, 2)), sg.Checkbox(('Special Tag\nSelected'), key='TagSpecial', default=False, size=(12,12))]]
 
 col_files = [[sg.Listbox(values=Filenames, change_submits=True, size=(40, 40), key='listbox')], [file_num_display_elem],
              [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size=(10, 2)),
              sg.Button(('Hold Boxes'), size=(10, 2))], ProperList, [sg.Column(BoxListButtons)]]
 
-TagButtons = [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size= (10, 2)), sg.Button(('Hold Boxes'), size= (10, 2))]
+col_adds = [[sg.Column(col_image, size=ImageSize)], [sg.Text(str(PullTags(ImagePath, Filenames[0])), size=(80,1), key='TextTag')]]
 
-StarButtons = [sg.Button(('Star 5'), size=(10, 1)), sg.Button(('Star 4'), size=(10, 1)), sg.Button(('Star 3'), size=(10, 1)),
-               sg.Button(('Star 2'), size=(10, 1)), sg.Button(('Star 1'), size=(10, 1)), sg.Button(('No Star'), size=(10, 1))]
+TagButtons = [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size= (10, 2)), sg.Button(('Hold Boxes'), size= (10, 2))]
 
 Col_Frame1 = [ [ sg.Column([[sg.Text('Tag Lists:')], [sg.Column(column1)]]) ] ]
 Col_Frame2 = [ [ sg.Column([[sg.Text('Tag Lists:')], [sg.Column(column2)]]) ] ]
@@ -177,19 +214,22 @@ layout = [
     [sg.Text('Image Tagger', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE),
      sg.Text('Your Folder', size=(15, 1), justification='right'), sg.InputText(ImagePath), sg.FolderBrowse(),
      sg.Button(('Go'), size=(4,1)), ImageNameText,
-     sg.Button(('Star 5'), size=(8, 1)), sg.Button(('Star 4'), size=(8, 1)), sg.Button(('Star 3'), size=(8, 1)),
-     sg.Button(('Star 2'), size=(8, 1)), sg.Button(('Star 1'), size=(8, 1)), sg.Button(('No Star'), size=(8, 1)),
+     sg.Radio('Star 5', "RadStr", size=(7, 1), key='RAD5'), sg.Radio('Star 4', "RadStr", size=(7, 1), key='RAD4'),
+     sg.Radio('Star 3', "RadStr", size=(7, 1), key='RAD3'), sg.Radio('Star 2', "RadStr", size=(7, 1), key='RAD2'),
+     sg.Radio('Star 1', "RadStr", size=(7, 1), key='RAD1'), sg.Radio('No Star', "RadStr", size=(7, 1), key='RAD0', default=True),
      sg.Button(('Exit'), size=(16,2)) ],
-    [sg.Button(('<'), size=(3, 50)), (sg.Column(col_image, size=ImageSize)),
+    [sg.Button(('<'), size=(3, 50)), sg.Column(col_adds),
      sg.Button(('>'), size=(3, 50)), sg.Column(Col_Frame1), sg.Column(Col_Frame2), sg.Column(Col_Frame3),
      sg.Column(col_files)] ]
 
-#### Main ===============================================
+
+### Main ===============================================
+##
 ##
 def main():
     Running = True
     Hold = False
-    image_idx = 0
+    image_idx = ExtRating = 0
     ImageName = ListTag = ""
     HoldList = []
 
@@ -198,7 +238,7 @@ def main():
     window = sg.Window('Image Tagger', layout, return_keyboard_events=True,
                        location=(0, 0), use_default_focus=False)
 
-#### Main update loop for tagger
+### Main update loop for tagger
 ##
     while Running == True:
         Interlist = []
@@ -221,7 +261,7 @@ def main():
             image_idx = Filenames.index(imagef)
             if not Hold:
                 ImageTagsClear()
-        #### Browse Dir chang46428e
+### Browse Dir chang46428e
         elif event == 'Go':
             ImagePath = values[0]  # get browse str
             image_idx = 0          # set to 0 for new dir
@@ -234,7 +274,6 @@ def main():
                 HoldList = []
             for LookChk in (TaggerList[:-1]):
                 HoldList.append(values[LookChk])
-                    #print("Hold Vaules: ", HoldList)
         elif event == 'Clear Boxes':
             Hold = False
             HoldList = []
@@ -244,20 +283,34 @@ def main():
             PushTags(ImagePath, Filenames[image_idx], ListTag)
         elif event == 'Add Tag':
             TupIndex = window['proplist'].get_indexes()
-            ListTag = SpecialList[TupIndex[0]] + ";"
+            try:
+                ListTag = SpecialList[TupIndex[0]] + ";"
+                window.Element('TagSpecial').Update(value=True)
+            except IndexError:
+                print("No special tag selected.")
         elif event == 'Clear Tag':
+            window.Element('TagSpecial').Update(value=False)
             ListTag = ""
         elif event == 'Exit':
             Running = False
         else:
             pass
-        print("Image index:", image_idx, Filenames[image_idx])
+        # print("Image index:", image_idx, Filenames[image_idx])
 
         ShowImageTags(PullTags(ImagePath, Filenames[image_idx]))
         ImageName = os.path.join(ImagePath, Filenames[image_idx])
 
         image_elem.Update(data=get_img_data(ImageName))
-        # image_elem.Update(ImageName)
+        window.FindElement('TextTag').Update(PullTags(ImagePath, Filenames[image_idx]))
+        #window.FindElement('RadStr').Update(value=PullRating(ImagePath, Filenames[image_idx]))
+
+        ExtRating = PullRating(ImagePath, Filenames[image_idx])
+        print("Pulled Rating: ", ExtRating, "Percentage: ", 20 * ExtRating)
+        print("Radio :", GetRadio())
+        for i in range(len(radio_list)):
+            window.FindElement(radio_list[i]).Update = False
+        if ExtRating <= 5:
+            window.FindElement(radio_list[ExtRating-1]).Update = True
         ImageNameText.Update(ImageName)
         file_num_display_elem.Update('File {} of {}'.format(image_idx+1, num_files ))
 
