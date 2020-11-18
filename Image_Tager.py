@@ -32,10 +32,14 @@ Tags1 = TaggerList[:int(TaggerListLen/3)]
 Tags2 = TaggerList[int(TaggerListLen/3):int(TaggerListLen/3*2)]
 Tags3 = TaggerList[int(TaggerListLen/3*2):-1]
 BaseTag = Filenames = []
-ImageSize = (800,600) #(1440, 920)
+ImageSize = (800,800) #(1440, 920)
 KeyValue = 40094  # ExIF key for KeyWords in Windows
 KeyRating = 18246  # ExIF key for rating in Windows
 PerRating = 18249  # ExIF Percentage rating
+ImageWxif = 256
+ImageHxif = 257
+ImgHeight = 0
+ImgWidth = 0
 Nullth = '0th'
 KeyStr = "XPKeywords"
 exifDataRaw = {}
@@ -78,12 +82,15 @@ def get_file_list(ImagePath):
 
 
 def get_img_data(f, maxsize = ImageSize, first = False):
+    global ImgWidth, ImgHeight
     try:
         img = Image.open(f)
     except OSError:
         print("OS Error", OSError, "  First ", first)
         return None
+    ImgWidth, ImgHeight = img.size
     img.thumbnail(maxsize)
+
     if first:                     # tkinter is inactive the first time
         bio = io.BytesIO()
         img.save(bio, format = "PNG")
@@ -111,6 +118,7 @@ def PullTags(pathname, filename):
 def PullRating(pathname, filename):
     global exifDataRaw
     exifDataRaw = piexif.load(pathname + '\\' + filename)
+
     try:
         if exifDataRaw[Nullth]:
             try:
@@ -194,6 +202,10 @@ ProperList = [sg.Listbox(values=SpecialList, size=(30, 10), key='proplist', sele
 
 BoxListButtons = [[sg.Button(('Add Tag'), size=(8, 2)), sg.Button(('Clear Tag'), size=(8, 2)), sg.Checkbox(('Special Tag\nSelected'), key='TagSpecial', default=False, size=(12,12))]]
 
+SizeText = [[sg.Text('Image Width:', size=(10, 1), justification='right', font=("Helvetica", 10)),
+            sg.Text(text=ImgWidth, size=(4, 1), key='upWidth', relief='sunken'), sg.Text(' Height:', size=(5, 1),  justification='right'),
+            sg.Text(text=ImgHeight, size=(4, 1), key='upHeight', relief='sunken')]]
+
 col_files = [[sg.Listbox(values=Filenames, change_submits=True, size=(40, 40), key='listbox')], [file_num_display_elem],
              [sg.Button(('Save Image'), size=(10, 2)), sg.Button(('Clear Boxes'), size=(10, 2)),
              sg.Button(('Hold Boxes'), size=(10, 2))], ProperList, [sg.Column(BoxListButtons)]]
@@ -217,7 +229,7 @@ layout = [
     [ImageNameText, sg.Radio('Star 5', "RadStr", size=(7, 1), key='RAD5'), sg.Radio('Star 4', "RadStr", size=(7, 1), key='RAD4'),
     sg.Radio('Star 3', "RadStr", size=(7, 1), key='RAD3'), sg.Radio('Star 2', "RadStr", size=(7, 1), key='RAD2'),
     sg.Radio('Star 1', "RadStr", size=(7, 1), key='RAD1'),
-    sg.Radio('No Star', "RadStr", size=(7, 1), key='RAD0', default=True)]]
+    sg.Radio('No Star', "RadStr", size=(7, 1), key='RAD0', default=True), sg.Column(SizeText)]]
 
 
 ### Main ===============================================
@@ -296,6 +308,9 @@ def main():
         ShowImageTags(PullTags(ImagePath, Filenames[image_idx]))
         ImageName = os.path.join(ImagePath, Filenames[image_idx])
         image_elem.Update(data=get_img_data(ImageName))
+
+        window['upWidth'].update(ImgWidth)
+        window['upHeight'].update(ImgHeight)
         window.FindElement('TextTag').Update(PullTags(ImagePath, Filenames[image_idx]))
 
 ### Update Rating Radio buttons
