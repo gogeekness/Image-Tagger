@@ -85,11 +85,12 @@ def get_img_data(f, maxsize = ImageSize, first = False):
     global ImgWidth, ImgHeight
     try:
         img = Image.open(f)
+        ImgWidth, ImgHeight = img.size
+        img.thumbnail(maxsize)
     except OSError:
         print("OS Error", OSError, "  First ", first)
         return None
-    ImgWidth, ImgHeight = img.size
-    img.thumbnail(maxsize)
+
 
     if first:                     # tkinter is inactive the first time
         bio = io.BytesIO()
