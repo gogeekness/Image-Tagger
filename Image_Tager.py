@@ -50,7 +50,7 @@ BlankTag = {'0th': {18246: 0, 18249: 0, 40094: (65, 0)}, 'Exif': {}, 'GPS': {}, 
 ### Get the folder containin:g the images from the user
 sg.theme('Dark Red')
 
-ImagePath = sg.PopupGetFolder('Image folder to open', default_path='')
+ImagePath = sg.PopupGetFolder('Image folder to open', default_path='R:/images/Fresh Images/')
 if not ImagePath:
     sg.PopupCancel('Cancelling')
     raise SystemExit()
@@ -151,8 +151,11 @@ def PushTags(pathname, filename, ListTag):
         exifDataRaw[Nullth][KeyValue] = tuple(InsertString[:-1].encode('utf_16_le'))
         exifDataRaw[Nullth][KeyRating] = GetRadio()
         exifDataRaw[Nullth][PerRating] = 20 * GetRadio()
-        ByteExif = piexif.dump(exifDataRaw)
-        piexif.insert(ByteExif, pathname + '\\' + filename)
+        try:
+            ByteExif = piexif.dump(exifDataRaw)
+            piexif.insert(ByteExif, pathname + '\\' + filename)
+        except Exception:
+            print("Error Data not JPG can not save EXIF data")
     else:
         print("No Exif Data")
 
