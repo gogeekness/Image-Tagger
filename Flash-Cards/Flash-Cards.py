@@ -17,7 +17,9 @@ else:
 MasterList = []
 WertType = ["fragenwört", "adjektiv", "verb", "nomen", "adverb", "präposition", "konjunktion", "phrase"]
 VerbeType = ["Nominativ", "Akkusativ", "Dativ", "Genitiv", "Akk-Dat"]
+LangType = ['DE_LAG', 'KED_LAG', 'EN_LAG']
 
+random.seed()
 
 def get_data(Filename):
     global MasterList
@@ -37,20 +39,25 @@ def get_data(Filename):
         quit(1)
 
 
-def make_random_list(Filter, ListSize):
+def filter_list(Filter, ListSize):
     global MasterList
     ResultList = []
     for wertnum in range(len(MasterList)):
         if MasterList[wertnum][0] in Filter:
             ResultList.append(wertnum)
             print("wert : ", wertnum, MasterList[wertnum][0], Filter)
-    #random.shuffle(ResultList)
+    print("List len : ", len(ResultList), len(MasterList), "List  ", ResultList)
+
+    random.shuffle(ResultList)
     return ResultList[:ListSize]
 
 
 sg.theme('Dark Red')
 
-CSVPath = sg.PopupGetFolder('CSV file folder to open', default_path=str(os.getcwd()))
+#CSVPath = sg.PopupGetFolder('CSV file folder to open', default_path=str(os.getcwd()))
+CSVPath = sg.PopupGetFolder('CSV file folder to open', default_path=str('C:\\Users\\rdese\\Documents\\German Language Notes'))
+# C:\Users\rdese\Documents\German Language Notes
+
 if not CSVPath:
     sg.PopupCancel('Cancelling')
     raise SystemExit()
@@ -75,18 +82,20 @@ Col_gender = [[sg.Text('Noun Gender')], [sg.Radio('Der', "Nounlich", size=(5, 1)
 FilterVerbe = [sg.Listbox(values=VerbeType, size=(20, 4), key='VerbeSel', select_mode="LISTBOX_SELECT_MODE_SINGLE", enable_events=True)]
 
 layout = [
-    [sg.Text('Flash Cards', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE), sg.Button(('Exit'), size=(16, 1))],
-    [sg.Text('German', size=(24, 1), justification='center', font=("Helvetica", 16)),
+    [sg.Text('Flash Cards', size=(30, 1), justification='center', font=("Helvetica", 25), relief=sg.RELIEF_RIDGE),
+     sg.Text(' ' * 69), sg.Button(('Exit'), size=(12, 2))],
+    [sg.Button('Sprechen', size=(8, 1), key='VoiceMe'), sg.Text('German', size=(24, 1), justification='center', font=("Helvetica", 16)),
      sg.Text('English', size=(24, 1), justification='center', font=("Helvetica", 16)),
      sg.Text('Notes', size=(24, 1), justification='center', font=("Helvetica", 16))],
-    [sg.Button(('<'), size=(3, 6)), sg.Multiline(default_text="Hallo", key='De', size=(30,6), font=("Helvetica", 12)),
+    [sg.Button(('<'), size=(3, 6)), sg.Button(('>'), size=(3, 6)), sg.Multiline(default_text="Hallo", key='De', size=(30,6), font=("Helvetica", 12)),
       sg.Multiline(default_text="Hello", key='En', size=(30,6), font=("Helvetica", 12)),
-      sg.Multiline(default_text="Notes", key='Nt', size=(30,6), font=("Helvetica", 12)), sg.Button(('>'), size=(3, 6))],
-    [sg.Radio('Deutsch', "RadStr", size=(18, 1), key='RAD_LAG'), sg.Radio('Deutsch keine text', "RadStr", size=(18, 1), key='RAD_LAG'),
-     sg.Radio('English', "RadStr", size=(36, 1), key='RAD_LAG'),
-     sg.Button('Show Notes', size=(12, 1), key='ShowNotes')],
-    [sg.Button('Sprechen', size=(12, 1), key='VoiceMe')],
-    [sg.Column(Col_verbclass), sg.VSeperator(), sg.Column(Col_gender),
+      sg.Multiline(default_text="Notes", key='Nt', size=(30,6), font=("Helvetica", 12))],
+    [sg.Button('Set Lang', size=(8, 1), key='Set_Mode'), sg.Radio('Deutsch', "RadStr", size=(11, 1), key='DE_LAG'),
+     sg.Radio('Deutsch keine text', "RadStr", size=(18, 1), key='KED_LAG'), sg.Radio('English', "RadStr", size=(57, 1), key='EN_LAG'),
+     sg.Button('  Go  ', size=(12, 2), key="Go_and_do")],
+    [ sg.Button('DE Answer', size=(12, 1), key='DEAnswer'), sg.Text(' ' * 44),
+     sg.Button('EN Answer', size=(12, 1), key='ENAnswer'), sg.Text(' ' * 43), sg.Button('Show Notes', size=(12, 1), key='ShowNotes')],
+    [sg.Column(Col_verbclass), sg.VSeperator(), sg.Column(Col_gender),sg.Text(' ' * 8),
      sg.Column( [[sg.Text('Word Filter', size=(20, 1),  justification='center', font=("Helvetica", 14))],
     [sg.Listbox(values=WertType, select_mode='extended', key='wert', size=(20, 5), font=("Helvetica", 16))],
     [sg.Button('Set Filter', size=(15, 1))]] )]
@@ -111,9 +120,15 @@ def main():
     window = sg.Window('Flash Cards', layout, return_keyboard_events=True,
                        location=(0, 0), use_default_focus=False)
 
+    print("Total list  ", len(MasterList))
+    for i in MasterList:
+        print("Element : ", i)
+
+
     while Running == True:
         event, values = window.read()
 
+        print("Event : ", event, "Value : ", values)
         if event == 'Exit':
             Running = False
 
@@ -134,10 +149,21 @@ def main():
 
         elif event == 'Set Filter':
             print("Filter : ", values['wert'])
-            IndexList = make_random_list(values['wert'], 30)
-            print("wert : ", IndexList)
+            IndexList = filter_list(values['wert'], 30)
+            print("wert 2 : ", IndexList)
             window['De'].update(VocabeList[IndexList[VocabIndex]][3])
             window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+
+        elif event == 'Go_and_do':
+            if not any(list(values[i] for i in LangType)):
+                print("There is nothing selected")
+                continue
+            elif values['DE_LAG'] is True:
+                print("DE langage")
+            elif values['KED_LAG'] is True:
+                print("DE langage no screen")
+            elif values['EN_LAG'] is True:
+                print("EN langage")
 
         print("Index : ", IndexList[VocabIndex], VocabeList[IndexList[VocabIndex]][3])
 
