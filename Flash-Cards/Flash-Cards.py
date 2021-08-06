@@ -3,7 +3,7 @@
 # From CSV data-set
 # Richard Eseke 2021
 
-import os, sys
+import os, sys, time
 import os.path
 import csv, random
 import gtts
@@ -141,11 +141,23 @@ def main():
             window['De'].update(VocabeList[IndexList[VocabIndex]][3])
             window['En'].update(VocabeList[IndexList[VocabIndex]][4])
         elif event == 'VoiceMe':
-            print("The sprevhen wert ", str(VocabeList[IndexList[VocabIndex]][3]))
+            print("The sprechen wert ", str(VocabeList[IndexList[VocabIndex]][3]))
             tts = gtts.gTTS(str(VocabeList[IndexList[VocabIndex]][3]), lang='de')
-            tts.save("Sprechen.mp3")
-            playsound("Sprechen.mp3")
-            os.remove("Sprechen.mp3")
+            try:
+                tts.save("Sprechen.mp3")
+                try:
+                    playsound("Sprechen.mp3")
+                    print("Playing sound for", str(VocabeList[IndexList[VocabIndex]][3]))
+                except IOError:
+                    print("File busyn playing please wait.")
+            except IOError:
+                print("File busy please wait.")
+
+
+
+
+            if os.path.exists("Sprechen.mp3"):
+                os.remove("Sprechen.mp3")
 
         elif event == 'Set Filter':
             print("Filter : ", values['wert'])
