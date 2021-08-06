@@ -93,11 +93,13 @@ layout = [
     [sg.Button('Set Lang', size=(8, 1), key='Set_Mode'), sg.Radio('Deutsch', "RadStr", size=(11, 1), key='DE_LAG'),
      sg.Radio('Deutsch keine text', "RadStr", size=(18, 1), key='KED_LAG'), sg.Radio('English', "RadStr", size=(57, 1), key='EN_LAG'),
      sg.Button('  Go  ', size=(12, 2), key="Go_and_do")],
-    [ sg.Button('DE Answer', size=(12, 1), key='DEAnswer'), sg.Text(' ' * 44),
+    [ sg.Button('DE Answer', size=(12, 1), key='DEAnswer'), sg.Text(' ' * 64),
      sg.Button('EN Answer', size=(12, 1), key='ENAnswer'), sg.Text(' ' * 43), sg.Button('Show Notes', size=(12, 1), key='ShowNotes')],
     [sg.Column(Col_verbclass), sg.VSeperator(), sg.Column(Col_gender),sg.Text(' ' * 8),
-     sg.Column( [[sg.Text('Word Filter', size=(20, 1),  justification='center', font=("Helvetica", 14))],
-    [sg.Listbox(values=WertType, select_mode='extended', key='wert', size=(20, 5), font=("Helvetica", 16))],
+     sg.Column( [[sg.Text('Word Filter', size=(20, 1),  justification='center', font=("Helvetica", 14)), sg.Text(' ' * 14),
+                  sg.Slider(range=(0, 50), default_value=30, size=(40, 10), orientation="h", enable_events=True, key="slider")],
+    [sg.Listbox(values=WertType, select_mode='extended', key='wert', size=(20, 5), font=("Helvetica", 16)),
+                sg.Text(' ' * 5), sg.Multiline(default_text="This is where the answers \nwill be displayed.", key='Out', size=(48, 10))],
     [sg.Button('Set Filter', size=(15, 1))]] )]
 ]
 
