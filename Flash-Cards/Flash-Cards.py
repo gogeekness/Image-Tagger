@@ -8,6 +8,7 @@ import os.path
 import csv, random
 import gtts
 from playsound import playsound
+from fuzzywuzzy import fuzz
 
 if sys.version_info[0] >= 3:
     import PySimpleGUI as sg
@@ -18,8 +19,6 @@ MasterList = []
 WertType = ["fragenwört", "adjektiv", "verb", "nomen", "adverb", "präposition", "konjunktion", "phrase"]
 VerbeType = ["Nominativ", "Akkusativ", "Dativ", "Genitiv", "Akk-Dat"]
 LangType = ['DE_LAG', 'KED_LAG', 'EN_LAG']
-
-
 
 random.seed()
 
@@ -47,12 +46,18 @@ def filter_list(Filter, ListSize):
     for wertnum in range(len(MasterList)):
         if MasterList[wertnum][0] in Filter:
             ResultList.append(wertnum)
-            # print("wert : ", wertnum, MasterList[wertnum][0], Filter)
+            print("wert : ", wertnum, MasterList[wertnum][0], Filter)
     print("List len : ", len(ResultList), len(MasterList), "List  ", ResultList)
 
     random.shuffle(ResultList)
     return ResultList[:ListSize]
 
+def fuzzycheck(string1, string2):
+    PartialRatio = fuzz.partial_ratio(string1, string2)
+    if PartialRatio > 90:
+        return True
+    else:
+        return False
 
 sg.theme('Dark Red')
 
@@ -92,14 +97,14 @@ layout = [
     [sg.Button(('<'), size=(3, 6)), sg.Button(('>'), size=(3, 6)), sg.Multiline(default_text="Hallo", key='De', size=(30,6), font=("Helvetica", 12)),
       sg.Multiline(default_text="Hello", key='En', size=(30,6), font=("Helvetica", 12)),
       sg.Multiline(default_text="Notes", key='Nt', size=(30,6), font=("Helvetica", 12))],
-    [sg.Button('Set Lang', size=(8, 1), key='Set_Mode'), sg.Radio('Deutsch', "RadStr", size=(11, 1), key='DE_LAG'),
-     sg.Radio('Deutsch keine text', "RadStr", size=(18, 1), key='KED_LAG'), sg.Radio('English', "RadStr", size=(40, 1), key='EN_LAG'),
+    [sg.Text(' ' * 16), sg.Radio('Prüfen Deutsch', "RadStr", size=(11, 1), key='DE_LAG'),
+     sg.Radio('Prüfen Deutsch keine Text', "RadStr", size=(24, 1), key='KED_LAG'), sg.Radio('Test English', "RadStr", size=(36, 1), key='EN_LAG'),
      sg.Checkbox('Show Notes', size=(11, 1), default=True, key='ShowNotes'), sg.Button('  Go  ', size=(12, 2), key="Go_and_do")],
-    [sg.Button('DE Answer', size=(12, 1), key='DEAnswer'), sg.Text(' ' * 64),
+    [sg.Text(' ' * 16), sg.Button('DE Answer', size=(12, 1), key='DEAnswer'), sg.Text(' ' * 57),
      sg.Button('EN Answer', size=(12, 1), key='ENAnswer'), sg.Text(' ' * 43)],
     [sg.Column(Col_verbclass), sg.VSeperator(), sg.Column(Col_gender),sg.Text(' ' * 8),
      sg.Column( [[sg.Text('Word Filter', size=(20, 1),  justification='center', font=("Helvetica", 14)), sg.Text(' ' * 14),
-                  sg.Slider(range=(10, 50), default_value=30, size=(40, 10), orientation="h", enable_events=True, key="slider")],
+                  sg.Slider(range=(5, 50), default_value=30, size=(40, 10), orientation="h", enable_events=True, key="slider")],
     [sg.Listbox(values=WertType, select_mode='extended', key='wert', size=(20, 5), font=("Helvetica", 16)),
                 sg.Text(' ' * 5), sg.Multiline(default_text="This is where the answers \nwill be displayed.", key='Out', size=(48, 10))],
     [sg.Button('Set Filter', size=(15, 1))]] )]
@@ -107,7 +112,7 @@ layout = [
 
 def main():
     Running = True
-    global ImagePath, Filenames, window, values, ProperListNames, ShowNotesToggle
+    global ImagePath, Filenames, window, values, ProperListNames, ShowNotesToggle, AnswerWindow
 
     ## Vocab List break down
     # [0] wert type
@@ -121,6 +126,7 @@ def main():
     IndexList = range(1, VocabMax)
     VocabIndex = 0
     ShowNotesToggle = True
+    AnswerWindow = ""
 
     window = sg.Window('Flash Cards', layout, return_keyboard_events=True,
                        location=(0, 0), use_default_focus=False)
@@ -139,12 +145,16 @@ def main():
 
         elif event in ('>', 'MouseWheel:Down', 'Down:40', 'Next:34') and VocabIndex < (len(IndexList)-1):
             VocabIndex += 1
-            window['De'].update(VocabeList[IndexList[VocabIndex]][3])
-            window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+            # window['De'].update(VocabeList[IndexList[VocabIndex]][3])
+            # window['En'].update(VocabeList[IndexList[VocabIndex]][4])
         elif event in ('<', 'MouseWheel:Up',  'Up:38', 'Prior:33') and VocabIndex >= 1:
             VocabIndex -= 1
-            window['De'].update(VocabeList[IndexList[VocabIndex]][3])
-            window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+            # window['De'].update(VocabeList[IndexList[VocabIndex]][3])
+            # window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+        elif event == "slider":
+            val = values["slider"]
+            window.Element("slider").Update(val)
+
         elif event == 'VoiceMe':
             print("The sprechen wert ", str(VocabeList[IndexList[VocabIndex]][3]))
             tts = gtts.gTTS(str(VocabeList[IndexList[VocabIndex]][3]), lang='de')
@@ -154,11 +164,12 @@ def main():
                     playsound("Sprechen.mp3")
                     print("Playing sound for", str(VocabeList[IndexList[VocabIndex]][3]))
                 except IOError:
-                    print("File busyn playing please wait.")
+                    print("File busy playing please wait.")
             except IOError:
                 print("File busy please wait.")
             if os.path.exists("Sprechen.mp3"):
                 os.remove("Sprechen.mp3")
+
         elif event == 'Set Filter':
             if not values['wert']:
                 continue
@@ -167,19 +178,38 @@ def main():
                 print("Filter : ", values['wert'], " Number ", int(values['slider']))
                 IndexList = filter_list(values['wert'], int(values['slider']))
                 print("wert 2 : ", IndexList)
-                window['De'].update(VocabeList[IndexList[VocabIndex]][3])
-                window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+                # window['De'].update(VocabeList[IndexList[VocabIndex]][3])
+                # window['En'].update(VocabeList[IndexList[VocabIndex]][4])
+
         ## Start of testing on the Flash cards
         elif event == 'Go_and_do':
-            if not any(list(values[i] for i in LangType)):
-                print("There is nothing selected")
-                continue
-            elif values['DE_LAG'] is True:
-                print("DE langage")
-            elif values['KED_LAG'] is True:
-                print("DE langage no screen")
-            elif values['EN_LAG'] is True:
-                print("EN langage")
+            korect, faulsch, markit, i = 0, 0, "", 0
+            if not any(list(values[i] for i in LangType)) or not values['wert']:
+                print("There is nothing selected.")
+            else:
+                if values['DE_LAG'] is True:
+                    print("Locked for Questions")
+                    for i in range(int(values['slider'])):
+                        window['En'].update(VocabeList[IndexList[i]][4])
+                        print("Word Loop : ", i, VocabeList[IndexList[i]][4], event)
+                        if event == 'DEAnswer':
+                            print("Input ?", values['De'])
+                            if fuzzycheck(VocabeList[IndexList[i]][4], values['De']) is True:
+                                markit = "DE: " + " word " + " EN: " + "Correct."
+                                korect += 1
+                            else:
+                                markit = "DE: " + " word " + " EN: " + "Incorrect."
+                                faulsch += 1
+                            i += 1
+                        AnswerWindow = AnswerWindow + "\n" + markit
+                    AnswerWindow = AnswerWindow + "\nCorrect   : " + str(korect) + "\nIncorrect : " + str(faulsch)
+
+                    print("DE langage")
+                elif values['KED_LAG'] is True:
+
+                    print("DE langage no screen")
+                elif values['EN_LAG'] is True:
+                    print("EN langage")
 
 
 ## bEnd of Events, Now status updates
