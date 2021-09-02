@@ -59,6 +59,7 @@ def fuzzycheck(string1, string2):
     else:
         return False
 
+
 sg.theme('Dark Red')
 
 #CSVPath = sg.PopupGetFolder('CSV file folder to open', default_path=str(os.getcwd()))
@@ -139,7 +140,7 @@ def main():
     while Running == True:
         event, values = window.read()
 
-        print("Event : ", event, "Value : ", values)
+        #print("Event : ", event, "Value : ", values)
         if event == 'Exit':
             Running = False
 
@@ -183,33 +184,46 @@ def main():
 
         ## Start of testing on the Flash cards
         elif event == 'Go_and_do':
-            korect, faulsch, markit, i = 0, 0, "", 0
+            korect, faulsch, markit, i, TotalWords = 0, 0, "", 0, values['slider']
             if not any(list(values[i] for i in LangType)) or not values['wert']:
                 print("There is nothing selected.")
             else:
-                if values['DE_LAG'] is True:
-                    print("Locked for Questions")
-                    for i in range(int(values['slider'])):
-                        window['En'].update(VocabeList[IndexList[i]][4])
-                        print("Word Loop : ", i, VocabeList[IndexList[i]][4], event)
-                        if event == 'DEAnswer':
-                            print("Input ?", values['De'])
-                            if fuzzycheck(VocabeList[IndexList[i]][4], values['De']) is True:
-                                markit = "DE: " + " word " + " EN: " + "Correct."
-                                korect += 1
-                            else:
-                                markit = "DE: " + " word " + " EN: " + "Incorrect."
-                                faulsch += 1
-                            i += 1
+                MoreWords = True
+                print("Locked for Questions")
+                window['En'].update(VocabeList[IndexList[i]][4])
+                Antwert = []
+                while MoreWords is True:
+                    event, values = window.read()
+                    window['En'].update(VocabeList[IndexList[i]][4])
+                    print("Word Loop : ", i, VocabeList[IndexList[i]][4], event)
+                    if event == 'DEAnswer':
+                        print("Input ?", values['De'])
+                        if fuzzycheck(VocabeList[IndexList[i]][4], values['De']) is True:
+                            markit = "DE: " + " word " + " EN: " + "Correct."
+                            korect += 1
+                        else:
+                            markit = "DE: " + " word " + " EN: " + "Incorrect."
+                            faulsch += 1
+                        Antwert.append(str("DE " + VocabeList[IndexList[i]][3] + " EN " + VocabeList[IndexList[i]][4]))
                         AnswerWindow = AnswerWindow + "\n" + markit
-                    AnswerWindow = AnswerWindow + "\nCorrect   : " + str(korect) + "\nIncorrect : " + str(faulsch)
+                        window['Out'].update(AnswerWindow)
+                        i += 1
+                    if i >= TotalWords:
+                        MoreWords = False
+                    if event == 'exit':
+                        exit(0)
+                AnswerWindow = AnswerWindow + "\nCorrect : " + str(korect) + "   Incorrect : " + str(faulsch)
+                for i in range(len(Antwert)):
+                    print("Correct : ", Antwert.index(i))
 
-                    print("DE langage")
-                elif values['KED_LAG'] is True:
+                window['Out'].update(AnswerWindow)
 
-                    print("DE langage no screen")
-                elif values['EN_LAG'] is True:
-                    print("EN langage")
+            print("DE langage")
+        elif values['KED_LAG'] is True:
+
+            print("DE langage no screen")
+        elif values['EN_LAG'] is True:
+            print("EN langage")
 
 
 ## bEnd of Events, Now status updates
@@ -219,8 +233,6 @@ def main():
             window['Nt'].update("")
 
         print("Index : ", IndexList[VocabIndex], VocabeList[IndexList[VocabIndex]][3])
-
-
 
 
 #### This is the main_init
